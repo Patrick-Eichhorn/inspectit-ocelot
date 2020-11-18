@@ -41,7 +41,11 @@ public class ContextManager implements IContextManager {
 
     @Override
     public Runnable wrap(Runnable r) {
-        return Context.current().wrap(r);
+        if (r.getClass().getName().equals("org.glassfish.enterprise.concurrent.internal.ManagedFutureTask")) {
+            return r;
+        } else {
+            return Context.current().wrap(r);
+        }
     }
 
     @Override
