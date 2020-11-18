@@ -14,6 +14,8 @@ import rocks.inspectit.ocelot.core.instrumentation.correlation.log.adapters.*;
 import rocks.inspectit.ocelot.core.instrumentation.event.IClassDiscoveryListener;
 
 import javax.annotation.PostConstruct;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -83,9 +85,19 @@ public class MDCAccess implements IClassDiscoveryListener {
      * @return A function for undoing the change in all MDCs (Restoring any previously set value).
      */
     public Undo put(String key, String value) {
+        SecurityManager securityManager = System.getSecurityManager();
         List<Undo> undos = new ArrayList<>();
         for (MDCAdapter adapter : enabledAdapters) {
-            undos.add(adapter.set(key, value));
+            if (securityManager != null) {
+                AccessController.doPrivileged(new PrivilegedAction<Void>() {
+                    public Void run() {
+                        undos.add(adapter.set(key, value));
+                        return null;
+                    }
+                });
+            } else {
+                undos.add(adapter.set(key, value));
+            }
         }
         return () -> {
             //iterate in reverse order in case of inter-dependencies
