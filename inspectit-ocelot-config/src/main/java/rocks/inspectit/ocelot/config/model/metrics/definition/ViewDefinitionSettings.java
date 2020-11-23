@@ -108,7 +108,7 @@ public class ViewDefinitionSettings {
     }
 
     @AssertFalse(message = "When using QUANTILES aggregation you must specify the quantiles to use!")
-    boolean isQuantilesNotSpecifiedForercentileType() {
+    boolean isQuantilesNotSpecifiedForPercentileType() {
         return enabled && aggregation == Aggregation.QUANTILES && CollectionUtils.isEmpty(quantiles);
     }
 
