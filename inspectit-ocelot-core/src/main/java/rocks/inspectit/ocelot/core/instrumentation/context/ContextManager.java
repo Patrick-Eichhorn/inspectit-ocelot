@@ -4,8 +4,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.grpc.Context;
 import io.opencensus.tags.Tags;
+import lombok.extern.slf4j.Slf4j;
 import rocks.inspectit.ocelot.bootstrap.context.IContextManager;
 import rocks.inspectit.ocelot.core.config.spring.BootstrapInitializerConfiguration;
+import rocks.inspectit.ocelot.core.instrumentation.PreventWildflyMangedFutureTaskWrapping;
 import rocks.inspectit.ocelot.core.instrumentation.config.InstrumentationConfigurationResolver;
 import rocks.inspectit.ocelot.core.tags.CommonTagsManager;
 
@@ -15,6 +17,7 @@ import java.util.concurrent.Callable;
  * This class is based on the ContextStrategyImpl (https://github.com/census-instrumentation/opencensus-java/blob/master/contrib/agent/src/main/java/io/opencensus/contrib/agent/instrumentation/ContextStrategyImpl.java)
  * class from the opencensus-java repository.
  */
+@Slf4j
 public class ContextManager implements IContextManager {
 
     /**
@@ -41,16 +44,12 @@ public class ContextManager implements IContextManager {
 
     @Override
     public Runnable wrap(Runnable r) {
-        if (r.getClass().getName().equals("org.glassfish.enterprise.concurrent.internal.ManagedFutureTask")) {
-            return r;
-        } else {
-            return Context.current().wrap(r);
-        }
+        return PreventWildflyMangedFutureTaskWrapping.isMangedFutureTask(r) ? r : Context.current().wrap(r);
     }
 
     @Override
     public <T> Callable<T> wrap(Callable<T> callable) {
-        return Context.current().wrap(callable);
+        return PreventWildflyMangedFutureTaskWrapping.isMangedFutureTask(callable) ? callable : Context.current().wrap(callable);
     }
 
     @Override
