@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import rocks.inspectit.ocelot.bootstrap.correlation.LogTraceCorrelator;
+import rocks.inspectit.ocelot.core.instrumentation.PreventWildflyMangedFutureTaskWrapping;
 
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -59,6 +60,9 @@ public class LogTraceCorrelatorImpl implements LogTraceCorrelator {
 
     @Override
     public Runnable wrap(Runnable runnable) {
+        if (PreventWildflyMangedFutureTaskWrapping.isMangedFutureTask(runnable)) {
+            return runnable;
+        }
         return () -> {
             try (MDCAccess.Undo scope = applyCorrelationToMDC()) {
                 runnable.run();
@@ -68,11 +72,16 @@ public class LogTraceCorrelatorImpl implements LogTraceCorrelator {
 
     @Override
     public <T> Callable<T> wrap(Callable<T> callable) {
+        if (PreventWildflyMangedFutureTaskWrapping.isMangedFutureTask(callable)) {
+            return callable;
+        }
         return () -> {
             try (MDCAccess.Undo scope = applyCorrelationToMDC()) {
                 return callable.call();
             }
         };
+
+
     }
 
     @Override
